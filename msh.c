@@ -87,10 +87,23 @@ int main()
     // Now print the tokenized input as a debug check
     // \TODO Remove this code and replace with your shell functionality
 
-    int token_index  = 0;
-    for( token_index = 0; token_index < token_count; token_index ++ )
+    // int token_index  = 0;
+    // for( token_index = 0; token_index < token_count; token_index ++ )
+    // {
+    //   printf("token[%d] = %s\n", token_index, token[token_index] );
+    // }
+
+    // SHELL FUNCTIONALITY
+
+    // Avoid segmentation faults when no input is given.
+    if( token[0] == NULL )
     {
-      printf("token[%d] = %s\n", token_index, token[token_index] );
+      //do nothing :)
+    }
+    // Exit/quit command
+    else if( ( strcmp("exit", token[0]) == 0 ) || (strcmp("quit", token[0]) == 0 ) )
+    {
+      exit(0);
     }
 
     free( working_root );
