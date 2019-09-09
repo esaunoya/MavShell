@@ -105,6 +105,10 @@ int main()
     {
       exit(0);
     }
+    // Invalid command catch
+    else{
+      printf("%s: Command not found. \n", token[0]);
+    }
 
     free( working_root );
 
