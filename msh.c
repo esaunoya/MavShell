@@ -1,3 +1,10 @@
+/*
+
+  Name: Esau Noya
+  ID:   1001301929
+
+*/
+
 // The MIT License (MIT)
 //
 // Copyright (c) 2016, 2017 Trevor Bakker
@@ -37,12 +44,34 @@
 
 #define MAX_COMMAND_SIZE 255    // The maximum command-line size
 
-#define MAX_NUM_ARGUMENTS 5     // Mav shell only supports five arguments
+#define MAX_NUM_ARGUMENTS 10    // Mav shell only supports five arguments
+                                // Edit: To satisfy requirement 9, changed from
+                                // 5 to 10
+
+#define MAX_HISTORY 15          // The max number of most-recent commands to be kept
+
+#define MAX_PIDS 15             // The max number of most-recent precesses spawned to be kept
 
 int main()
 {
 
   char * cmd_str = (char*) malloc( MAX_COMMAND_SIZE );
+
+  // command history list
+  // MAX_HISTORY sets ceiling for number of Commands
+  char history[MAX_HISTORY][MAX_NUM_ARGUMENTS];
+
+  //list of pids
+  pid_t listpids[MAX_PIDS];
+
+  // directories where shell shall attempt to execute entered commands in given path order
+  const char *dirs[] = {"./", "/usr/local/bin/", "/usr/bin/", "/bin/"};
+
+
+  // keeps track of number of commands that have been called throughout session
+  int count = 0;
+
+  pid_t pid;
 
   while( 1 )
   {
@@ -98,20 +127,135 @@ int main()
     // Avoid segmentation faults when no input is given.
     if( token[0] == NULL )
     {
-      //do nothing :)
+      // do nothing :)
     }
-    // Exit/quit command
+    // 'cd DIRECTORY' will change current directory
+    else if( strcmp( "cd", token[0]) == 0 && token[1] != NULL )
+    {
+      // failure to find specified directory occurs
+      // will alert user directory not found
+      if(chdir(token[1]) == -1){
+        printf( "-msh: cd: %s: No such file or directory\n" , token[1] );
+      }
+
+    }
+    // 'history' displays the MAX_HISTORY last commands
+    else if( strcmp("history", token[0]) == 0 )
+    {
+      //for loop variables
+      int i;
+      int max;
+
+      // find final value of for loop
+      // set to count to start but if larger than MAX_HISTORY then set to that
+      max = count;
+      if( max > MAX_HISTORY )
+      {
+        max = MAX_HISTORY;
+      }
+
+      // print history
+      for( i = 0; i < max; i++ )
+      {
+        printf( "%d: %s\n" , i , history[i] );
+      }
+    }
+    // 'history' displays the MAX_HISTORY last commands
+    else if( strcmp("listpids", token[0]) == 0 )
+    {
+      //for loop variables
+      int i;
+      int max;
+
+      // find final value of for loop
+      // set to count to start but if larger than MAX_PIDS then set to that
+      max = count;
+      if( max > MAX_PIDS )
+      {
+        max = MAX_PIDS;
+      }
+
+      // print pids
+      for( i = 0; i < max; i++ )
+      {
+        printf( "%d: %d\n" , i , listpids[i] );
+      }
+    }
+    // 'exit' or 'quit' will terminate the shell
     else if( ( strcmp("exit", token[0]) == 0 ) || (strcmp("quit", token[0]) == 0 ) )
     {
       exit(0);
     }
-    // Invalid command catch
-    else{
-      printf("%s: Command not found. \n", token[0]);
+
+    pid = fork();
+
+    // add current PID to pid list
+    if(count <= MAX_PIDS)
+    {
+      listpids[count] = pid;
+    }
+    // if number of PIDS exceeds MAX_PIDS, move all pids up by 1
+    // in listpids[] and store newest at end
+    else
+    {
+      // for loop value
+      int i;
+
+      for(i = 0; i < MAX_PIDS; i++)
+      {
+        listpids[i] = listpids[i+1];
+      }
+      listpids[MAX_PIDS] = pid;
     }
 
+    //child pid
+    if(pid == 0)
+    {
+
+      // for loop value
+      int i;
+
+      // command not found counter
+      int commNotFoundInPath = 0;
+
+      // current directory / directory where execl will be attempted
+      char cd[MAX_COMMAND_SIZE];
+
+      // loop through and attempt to  command in directories
+      for(i = 0; i < 4; i++)
+      {
+        // copy PATH to cd
+        strcpy( cd , dirs[i] );
+        // concatenates cd and token[0]
+        strcat( cd , token[0] );
+
+        if( execl( cd, token[0], token[1], token[2], token[3], token[4],
+                       token[5], token[6], token[7], token[8], token[9], NULL ) )
+        {
+          //execl only returns if there is an error, so increment commNotFound;
+          commNotFoundInPath++;
+        }
+      }
+      // Command was not found in any of the 4 paths
+      if(commNotFoundInPath == 4)
+      {
+        printf("%s: Command not found.\n", token[0]);
+      }
+
+      exit(0);
+    }
+    //parent pid
+    else
+    {
+      //wait for child
+      wait(NULL);
+    }
+
+    //increment counter
+    count++;
     free( working_root );
 
   }
+
   return 0;
 }
